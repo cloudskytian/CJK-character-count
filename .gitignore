@@ -1,0 +1,11 @@
+zht-uifont/
+enc_old/
+build/
+dist/
+__pycache__/
+.venv/
+venv/
+cjktables-not-this-project/
+maoken_html/
+tests-*/
+*.pyc

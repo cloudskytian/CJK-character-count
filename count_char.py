@@ -104,5 +104,5 @@ for encoding in global_var.cjk_list:
     #gb18030 no file list, obsolete gbk file list
     if encoding == "gb18030" or encoding == "gbk":
         continue
-    cjk_dict[encoding] = load_sample_file(encoding+"-han.txt")
+    cjk_dict[encoding] = load_sample_file("tables/"+encoding+"-han.txt")
     cjk_char_count[encoding]=0
