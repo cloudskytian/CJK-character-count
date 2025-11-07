@@ -1,0 +1,13 @@
+zht-uifont/
+cjktables-not-this-project/
+tests-*/
+*.log
+settings.json
+
+# py specific
+.venv/
+venv/
+build/
+dist/
+__pycache__/
+*.pyc

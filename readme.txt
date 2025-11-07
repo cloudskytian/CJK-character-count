@@ -1,6 +1,23 @@
 Made by NightFurySL2001 / 夜煞之乐2001
 Released under MIT License
-Copyright © 2020-2023 NFSL2001
+Copyright © 2020-2025 NFSL2001
+
+2025-11-27 v0.50
+Standardise counting table format and ordering
+Allow custom table load by adding new text file
+Add menu bar for common actions and settings
+Add shortcut keys for open font and save report
+Restructure code to use class-based functions
+Remove main-zhs and main-zht, add setting to change language
+Add click on count to copy font character diffs
+Add GB/Z 40637-2021 and update HK list of commonly used Chars (hkchangyong)
+Remove Unicode blocks data and use unicode-blocks-py
+
+2023-11-07 v0.22 [with retracted v0.21]
+Fix count issue problem (#17 (comment))
+Remove popup when successfully open a font (#18), error will still show popup
+Restructure code to prevent accident from happening again
+Also use native hex representation to reduce load
 
 2023-04-13 v0.20
 Major optimization on code: OpenType limit 65k is possible to be done in <5sec
