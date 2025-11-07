@@ -9,14 +9,15 @@ global cjk_count
 global unicode_count
 global unicode_block_range
 
-import os, sys
-global main_directory
+import sys
+from pathlib import Path
+from enum import StrEnum
 
 #if packaged by pyinstaller
 #ref: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
 if getattr(sys, 'frozen', False):
     #change from loading same folder to full folder, --onedir
-    main_directory = os.path.dirname(sys.executable)
+    main_directory = Path(sys.executable).parent
     #`pyinstaller --onefile` change to use the following code
     #if '_MEIPASS2' in os.environ:
     #    main_directory = os.environ['_MEIPASS2']
@@ -24,11 +25,29 @@ if getattr(sys, 'frozen', False):
 else:
     #dev mode
     try: #py xx.py
-        app_full_path = os.path.realpath(__file__)
-        main_directory = os.path.dirname(app_full_path)
+        app_full_path = Path(__file__).resolve()
+        main_directory = app_full_path.parent
     except NameError: #py then run code
-        main_directory = os.path.dirname(os.getcwd())
+        main_directory = Path.cwd()
 
+class DisplayLanguage(StrEnum):
+    EN = "en"
+    ZHS = "zhs"
+    ZHT = "zht"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+    
+    def display_name(self):
+        if self == self.EN:
+            return "English"
+        elif self == self.ZHS:
+            return "简体中文"
+        elif self == self.ZHT:
+            return "正體（繁体）中文"
+        else:
+            return "Unknown"
 
 #full list of supported standard for variable initiation, also old list for compatibility
 cjk_list = {"gb2312":"GB/T 2312",
@@ -49,7 +68,7 @@ cjk_list = {"gb2312":"GB/T 2312",
             "hkscs":"Hong Kong Supplementary Character Set",
             "suppchara":"Common Supplementary Characters in Hong Kong (Level 1-6)",
             "iicore":"IICore",
-            "jf7000-normal": "jf7000 Character Pack Basic"
+            "jf7000-core": "jf7000 Character Pack Basic"
            }
 
 #english name
@@ -73,7 +92,7 @@ cjk_fan_list_en = {"4808changyong":"Chart of Standard Forms of Common National C
                 "hkscs":"Hong Kong Supplementary Character Set",
                 "suppchara":"Common Supplementary Characters in Hong Kong (Level 1-6)",
                 "gb12345":"GB/T 12345",
-                "jf7000-normal":"jf7000 Basic Charset"
+                "jf7000-core":"jf7000 Basic Charset"
                }
 unicode_list = {"kangxi":"Kangxi Radicals",
                 "kangxi-sup":"CJK Radical Supplements",
@@ -94,9 +113,9 @@ unicode_list = {"kangxi":"Kangxi Radicals",
                 "total":"Total Ideographs"
                 }
 titles_en = {
-    "simp": "Chinese (Simp) Encodings",
-    "simptrad": "Chinese (Simp/Trad) Encodings",
-    "trad": "Chinese (Trad) Encodings",
+    "jian": "Chinese (Simp) Encodings",
+    "jianfan": "Chinese (Simp/Trad) Encodings",
+    "fan": "Chinese (Trad) Encodings",
     "uni": "Unicode Blocks"
 }
 
@@ -121,7 +140,7 @@ cjk_fan_list_zhs = {"4808changyong":"常用国字标准字体表",
                 "hkscs":"香港增补字符集 (HKSCS)",
                 "suppchara":"常用香港外字表 (1-6级)",
                 "gb12345":"GB/T 12345",
-                "jf7000-normal":"jf7000 当务字集基本包"
+                "jf7000-core":"jf7000 当务字集基本包"
                }
 unicode_list_zhs = {"kangxi":"康熙部首",
                 "kangxi-sup":"汉字部首补充",
@@ -142,9 +161,9 @@ unicode_list_zhs = {"kangxi":"康熙部首",
                 "total":"总汉字数"
                 }
 titles_zhs = {
-    "simp": "简体中文编码",
-    "simptrad": "简体/繁体中文编码",
-    "trad": "繁体中文编码",
+    "jian": "简体中文编码",
+    "jianfan": "简体/繁体中文编码",
+    "fan": "繁体中文编码",
     "uni": "统一码区段"
 }
 
@@ -157,7 +176,7 @@ cjk_fan_list_zht = {"4808changyong":"常用國字標準字體表",
                 "hkscs":"香港增補字符集 (HKSCS)",
                 "suppchara":"常用香港外字表 (1-6級)",
                 "gb12345":"GB/T 12345",
-                "jf7000-normal":"jf7000 當務字集基本包"
+                "jf7000-core":"jf7000 當務字集基本包"
                }
 cjk_jian_fan_list_zht = {"hanyi-jianfan":"漢儀簡繁字表",
                      "fangzheng-jianfan":"方正簡繁字表",
@@ -190,9 +209,9 @@ unicode_list_zht = {"kangxi":"康熙部首",
                 "total":"總漢字數"
                 }
 titles_zht = {
-    "simp": "簡體中文編碼",
-    "simptrad": "簡體/正體（繁體）中文編碼",
-    "trad": "正體（繁體）中文編碼",
+    "jian": "簡體中文編碼",
+    "jianfan": "簡體/正體（繁體）中文編碼",
+    "fan": "正體（繁體）中文編碼",
     "uni": "統一碼區段"
 }
 
@@ -216,7 +235,7 @@ cjk_count = {"gb2312":6763,
             "hkscs":4603,
             "suppchara":1102,
             "iicore":9810,
-            "jf7000-normal":6373
+            "jf7000-core":6373
            }
 unicode_count = {"kangxi":214,
                 "kangxi-sup":115,
