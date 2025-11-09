@@ -1,10 +1,9 @@
-
+from pathlib import Path
+from typing import Callable
 
 from fontTools.ttLib import TTCollection, TTFont, TTLibError, sfnt
 
-
-from pathlib import Path
-from typing import Callable
+from global_var import DisplayCJKTablesList, DisplayUnicodeBlocksList, CJKGroup
 
 
 def get_ttc_list(filename: str) -> list[str]:
@@ -35,9 +34,12 @@ class FontInfoCollector:
         self.char_list = set()
         self.char_uvs_list = set()
         self.extract_chars()
+        
+        self.cjk_char_count = {}
+        self.unicode_char_count = {}
 
     def extract_chars(self):
-        self.char_list = set(self.font.getBestCmap().keys())
+        self.char_list = set(chr(x) for x in self.font.getBestCmap().keys())
         self.char_uvs_list = set()
 
         uvs_table = self.font["cmap"].getcmap(0, 5)
@@ -47,6 +49,28 @@ class FontInfoCollector:
             for vs_unicode, glyph_name in vs_tuples:
                 vs_string = chr(base_unicode) + chr(vs_unicode)
                 self.char_uvs_list.add(vs_string)
+
+    def count_cjk_chars(self) -> tuple[dict[str, int], dict[str, int]]:
+        """Count CJK characters in the font.
+
+        Returns:
+            A tuple containing two dictionaries:
+            - [0] cjk_char_count: A dictionary of CJK encoding ID to character count.
+            - [1] unicode_char_count: A dictionary of Unicode block ID to character count.
+        """
+        self.cjk_char_count = {}
+        for table_id, table in DisplayCJKTablesList.get_all_tables().items():
+            self.cjk_char_count[table_id] = len(table.get_overlap(self.char_list))
+
+        self.unicode_char_count = {}
+        for block_id, block in DisplayUnicodeBlocksList.get_ordered_blocks().items():
+            self.unicode_char_count[block_id] = sum(
+                1 for char in self.char_list if char in block.assigned_ranges
+            )
+        return self.cjk_char_count, self.unicode_char_count
+    
+    def get_diff_chars(self, in_set: set[str]) -> set[str]:
+        return self.char_list.difference(in_set)
 
     @classmethod
     def load_font(cls, font_path: Path, ttc_method: Callable[[list[str]], int]):

@@ -2,40 +2,36 @@ from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import messagebox
 
-import os
-import sys
 import argparse
 from pathlib import Path
 
 
-from FontInfoCollector import FontInfoCollector
-import count_char
 import global_var
 from global_var import DisplayLanguage
 import list_popup
 from localise import get_localised_label
+from FontInfoCollector import FontInfoCollector
 
 # optional font loader (pyglet) — used to register local ttf/ttc files so Tk can use their family names
 try:
+    import pyglet
     from pyglet.font import add_file as _pyglet_add_file
 
-    PYGLET_AVAILABLE = True
-except Exception:
-    _pyglet_add_file = None
-    PYGLET_AVAILABLE = False
+    # use legacy naming to avoid issues with certain font names
+    pyglet.options["dw_legacy_naming"] = True
 
-
-if PYGLET_AVAILABLE:
     try:
         tc_font_files = [
-            os.path.join(global_var.main_directory, "GenYoGothicTW-R.ttf"),
-            os.path.join(global_var.main_directory, "cjk-char-bold.ttf"),
+            global_var.main_directory / "GenYoGothicTW-R.ttf",
+            global_var.main_directory / "cjk-char-bold.ttf",
         ]
         for p in tc_font_files:
-            if os.path.exists(p):
-                _pyglet_add_file(p)
-    except Exception:
-        pass
+            if p.exists():
+                _pyglet_add_file(str(p))
+    except Exception as e:
+        print(e)
+except Exception:
+    pass
 
 
 class CJKApp:
@@ -60,11 +56,8 @@ class CJKApp:
         self.font_name = StringVar(self.root)
         # persisted last result
         self.last_font = None
-        self.last_cjk_counts = {}
-        self.last_unicode_counts = {}
 
         self._register_ui_fonts_by_language()
-        self._update_font_info_display()
         self.build_ui()
 
         # open file if provided on command line
@@ -84,12 +77,12 @@ class CJKApp:
         lang = self.language_var.get()
         if lang == DisplayLanguage.ZHT:
             self.title_font = ("cjk-char-bold", 14, "underline")
-            self.text_font = ("GenYoGothic TW R", 12)
-            self.text_sum_font = ("cjk-char-bold", 12)
+            self.text_font = ("GenYoGothic TW R", 13)
+            self.text_sum_font = ("cjk-char-bold", 13)
         elif lang == DisplayLanguage.ZHS:
             self.title_font = ("Microsoft YaHei UI", 14, "bold underline")
-            self.text_font = ("Microsoft YaHei UI", 12)
-            self.text_sum_font = ("Microsoft YaHei UI", 12, "bold")
+            self.text_font = ("Microsoft YaHei UI", 13)
+            self.text_sum_font = ("Microsoft YaHei UI", 13, "bold")
         else:
             self.title_font = ("Segoe UI", 12, "bold underline")
             self.text_font = ("Segoe UI", 12)
@@ -131,55 +124,47 @@ class CJKApp:
         )
         font_file_lbl.grid(column=3, row=0, sticky=W, columnspan=3)
 
-        # language-specific data
-        if lang == DisplayLanguage.ZHT:
-            order = ["fan", "jianfan", "jian"]
-            cjk_lists = {
-                "fan": global_var.cjk_fan_list_zht,
-                "jianfan": global_var.cjk_jian_fan_list_zht,
-                "jian": global_var.cjk_jian_list_zht,
-            }
-            unicode_list = global_var.unicode_list_zht
-        elif lang == DisplayLanguage.ZHS:
-            order = ["jian", "jianfan", "fan"]
-            cjk_lists = {
-                "jian": global_var.cjk_jian_list_zhs,
-                "jianfan": global_var.cjk_jian_fan_list_zhs,
-                "fan": global_var.cjk_fan_list_zhs,
-            }
-            unicode_list = global_var.unicode_list_zhs
-        else:
-            order = ["fan", "jianfan", "jian"]
-            cjk_lists = {
-                "jian": global_var.cjk_jian_list_en,
-                "jianfan": global_var.cjk_jian_fan_list_en,
-                "fan": global_var.cjk_fan_list_en,
-            }
-            unicode_list = global_var.unicode_list
+        # CJK sections
+        section_order = [
+            global_var.CJKGroup.FAN,
+            global_var.CJKGroup.JIANFAN,
+            global_var.CJKGroup.JIAN,
+        ]
+        if lang == DisplayLanguage.ZHS:
+            section_order = [
+                global_var.CJKGroup.JIAN,
+                global_var.CJKGroup.JIANFAN,
+                global_var.CJKGroup.FAN,
+            ]
 
         # Build sections
         row_cursor = 2
-        for section in order:
+        for section_label in section_order:
+            # Section title
             Label(
                 container,
-                text=self._("section_titles")[section],
+                text=self._("section_titles")[section_label],
                 font=self.title_font,
-                anchor="w",
             ).grid(column=0, row=row_cursor, sticky=W, padx=5)
             row_cursor += 1
-            for i, (enc_key, enc_label) in enumerate(
-                cjk_lists.get(section, {}).items()
-            ):
+            # Section entries
+            for (
+                enc_key,
+                enc_info,
+            ) in global_var.DisplayCJKTablesList.get_ordered_tables_in_group(
+                section_label
+            ).items():
                 self.cjk_label_var[enc_key] = StringVar(self.root)
                 Label(
                     container,
-                    text=enc_label + "：",
+                    text=enc_info.localised_name(self.language_var.get()) + "：",
                     justify="left",
                     font=self.text_font,
                 ).grid(column=0, row=row_cursor, sticky=W)
                 table_count_label = Label(
                     container,
                     textvariable=self.cjk_label_var[enc_key],
+                    justify="right",
                     font=self.text_font,
                 )
                 table_count_label.grid(column=1, row=row_cursor, sticky=E)
@@ -189,10 +174,10 @@ class CJKApp:
                 )
                 Label(
                     container,
-                    text="/" + str(global_var.cjk_count.get(enc_key, "")),
+                    text="/" + str(enc_info.count),
                     justify="left",
                     font=self.text_font,
-                ).grid(column=2, row=row_cursor, sticky=W)
+                ).grid(column=2, row=row_cursor, sticky=W, padx=(0, 16))
                 row_cursor += 1
             row_cursor += 1
 
@@ -201,38 +186,50 @@ class CJKApp:
         Label(
             container, text=self._("section_titles")["uni"], font=self.title_font
         ).grid(column=unicode_col, row=2, sticky=W, padx=5)
-        for i, (u_key, u_label) in enumerate(unicode_list.items()):
+        for i, (uni_block_id, uni_block) in enumerate(
+            global_var.DisplayUnicodeBlocksList.get_ordered_blocks().items()
+        ):
             u_row = i + 3
-            self.unicode_label_var[u_key] = StringVar(self.root)
-            u_font = self.text_sum_font if u_key == "total" else self.text_font
-            Label(container, text=u_label + "：", justify="left", font=u_font).grid(
-                column=unicode_col, row=u_row, sticky=W
-            )
+            self.unicode_label_var[uni_block_id] = StringVar(self.root)
+            u_font = self.text_sum_font if uni_block_id == "total" else self.text_font
             Label(
                 container,
-                textvariable=self.unicode_label_var[u_key],
+                text=self._("unicode_blocks").get(uni_block.name, uni_block.name)
+                + "：",
+                justify="left",
+                font=u_font,
+            ).grid(column=unicode_col, row=u_row, sticky=W)
+            Label(
+                container,
+                textvariable=self.unicode_label_var[uni_block_id],
                 justify="right",
                 font=u_font,
             ).grid(column=unicode_col + 1, row=u_row, sticky=E)
             Label(
                 container,
-                text="/" + str(global_var.unicode_count.get(u_key, "")),
+                text="/" + str(len(uni_block.assigned_ranges)),
                 justify="left",
                 font=u_font,
             ).grid(column=unicode_col + 2, row=u_row, sticky=W)
 
         # apply persisted counts
         self._update_font_info_display()
-        for enc_key, var in self.cjk_label_var.items():
+        self._reset_counts()
+        if self.last_font:
             try:
-                var.set(self.last_cjk_counts.get(enc_key, 0))
+                for enc_key, var in self.cjk_label_var.items():
+                    var.set(self.last_font.cjk_char_count.get(enc_key, 0))
+                for uni_block_id, var in self.unicode_label_var.items():
+                    var.set(self.last_font.unicode_char_count.get(uni_block_id, 0))
             except Exception:
                 pass
-        for u_key, var in self.unicode_label_var.items():
-            try:
-                var.set(self.last_unicode_counts.get(u_key, 0))
-            except Exception:
-                pass
+
+    def rebuild_ui(self):
+        for w in self.frame.winfo_children():
+            w.destroy()
+
+        self._register_ui_fonts_by_language()
+        self.build_ui()
 
     def _build_menubar(self):
         top_menu_bar = Menu(self.root)
@@ -264,13 +261,6 @@ class CJKApp:
             )
         top_menu_bar.add_cascade(label=self._("Language"), menu=language_menu)
 
-    def rebuild_ui(self):
-        for w in self.frame.winfo_children():
-            w.destroy()
-
-        self._register_ui_fonts_by_language()
-        self.build_ui()
-
     def _update_font_info_display(self):
         """Update font info display labels."""
         self.font_file_path.set(
@@ -289,6 +279,12 @@ class CJKApp:
                 else self._("no_file_selected")
             )
         )
+
+    def _reset_counts(self):
+        for label_var in self.cjk_label_var.values():
+            label_var.set(0)
+        for label_var in self.unicode_label_var.values():
+            label_var.set(0)
 
     def open_file(self, filename_arg: str = None):
         if filename_arg:
@@ -324,8 +320,6 @@ class CJKApp:
             )
             self._update_font_info_display()
         except ValueError:
-            self.last_font = None
-            self._update_font_info_display()
             messagebox.showwarning(
                 title=self._("not_a_valid_font_file"),
                 message=self._("not_a_valid_font_file_message"),
@@ -333,31 +327,19 @@ class CJKApp:
             return
 
         # reset counters
-        for cjk_enc in global_var.cjk_list:
-            if cjk_enc in self.cjk_label_var:
-                self.cjk_label_var[cjk_enc].set(0)
-        for unicode_enc in global_var.unicode_list:
-            if unicode_enc in self.unicode_label_var:
-                self.unicode_label_var[unicode_enc].set(0)
+        self._reset_counts()
 
         # import and count
-        output = count_char.count_char(self.last_font.char_list)
-        cjk_char_count, unicode_char_count = output[0], output[1]
+        cjk_char_count, unicode_char_count = self.last_font.count_cjk_chars()
 
-        # persist last counts
-        try:
-            self.last_cjk_counts = dict(cjk_char_count)
-            self.last_unicode_counts = dict(unicode_char_count)
-        except Exception:
-            self.last_cjk_counts = {}
-            self.last_unicode_counts = {}
-
-        for cjk_enc in global_var.cjk_list:
+        for cjk_enc in global_var.DisplayCJKTablesList.get_all_tables().keys():
             if cjk_enc in self.cjk_label_var:
-                self.cjk_label_var[cjk_enc].set(self.last_cjk_counts.get(cjk_enc, 0))
-        for unicode_enc in global_var.unicode_list:
+                self.cjk_label_var[cjk_enc].set(cjk_char_count.get(cjk_enc, 0))
+        for (
+            unicode_enc
+        ) in global_var.DisplayUnicodeBlocksList.get_ordered_blocks().keys():
             self.unicode_label_var[unicode_enc].set(
-                self.last_unicode_counts.get(unicode_enc, 0)
+                unicode_char_count.get(unicode_enc, 0)
             )
 
         # 猫啃网专用HTML模板
@@ -383,8 +365,8 @@ class CJKApp:
         ).resolve()
         write_csv.write(
             save_csv_path,
-            self.last_cjk_counts,
-            self.last_unicode_counts,
+            self.last_font.cjk_char_count,
+            self.last_font.unicode_char_count,
             self.language_var.get(),
         )
 
