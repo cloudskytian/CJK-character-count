@@ -47,9 +47,56 @@ class CJKApp:
         self.text_font = ("Segoe UI", 12)
         self.text_sum_font = ("Segoe UI", 12, "bold")
 
-        # frame container
-        self.frame = Frame(self.root)
-        self.frame.pack(padx=(25, 40), pady=(0, 30))
+        # root container with canvas for scrolling
+        root_frame = Frame(self.root)
+        root_frame.pack(fill="both", expand=True)
+        root_frame.grid_rowconfigure(0, weight=1)
+        root_frame.grid_columnconfigure(0, weight=1)
+
+        # only canvas can scroll
+        canvas = Canvas(root_frame)
+        canvas.grid(row=0, column=0, sticky="news")
+
+        # Link a scrollbar to the canvas
+        vscrollbar = Scrollbar(root_frame, orient="vertical", command=canvas.yview)
+        vscrollbar.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=vscrollbar.set)
+
+        # grid frame for display table
+        self.frame = Frame(canvas, pady=10)
+        # create window with anchor='n' (x coordinate is center when we set it)
+        _frame_window = canvas.create_window((0, 0), window=self.frame, anchor="n")
+
+        def _on_frame_config(event):
+            # update scrollregion then recenter
+            try:
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                canvas.update_idletasks()
+                # center the frame: compute left x coordinate so frame is centered
+                canvas_w = canvas.winfo_width()
+                frame_w = self.frame.winfo_reqwidth()
+                x = (canvas_w - frame_w) // 2
+                canvas.coords(_frame_window, x, 0)
+            except Exception:
+                pass
+
+        canvas.bind("<Configure>", _on_frame_config)
+
+        # mouse wheel support (Windows)
+        def _on_mousewheel(event):
+            try:
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            except Exception:
+                pass
+
+        def _bind_wheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_wheel(event):
+            canvas.unbind_all("<MouseWheel>")
+
+        self.frame.bind("<Enter>", _bind_wheel)
+        self.frame.bind("<Leave>", _unbind_wheel)
 
         # Current font file display
         self.font_file_path = StringVar(self.root)
