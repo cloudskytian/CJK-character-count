@@ -4,13 +4,73 @@ from tkinter import messagebox
 
 import argparse
 from pathlib import Path
-
+from enum import StrEnum
+from pydantic import BaseModel
 
 import global_var
 from global_var import DisplayLanguage
 import list_popup
 from localise import get_localised_label
 from FontInfoCollector import FontInfoCollector
+
+
+class ColourTheme(StrEnum):
+    LIGHT = "light"
+    DARK = "dark"
+
+
+class CopyTypeOnClick(StrEnum):
+    MISSING_CHARACTERS = "missing"
+    CHARACTERS_IN_FONT = "in_font"
+
+
+class SettingsManager(BaseModel):
+    """Simple settings manager: load/save a JSON settings file and apply theme to a Tk root."""
+
+    _path = Path(global_var.main_directory) / "settings.json"
+
+    theme: ColourTheme = ColourTheme.LIGHT
+    language: DisplayLanguage = DisplayLanguage.EN
+    copy_type_on_click: CopyTypeOnClick = CopyTypeOnClick.MISSING_CHARACTERS
+
+    @classmethod
+    def load(cls):
+        try:
+            path = cls._path.default
+            if path.exists():
+                with path.open("r", encoding="utf-8") as f:
+                    return cls.model_validate_json(f.read())
+            else:
+                return cls()
+        except Exception as e:
+            from traceback import print_exc
+
+            print_exc()
+            print("Error loading settings:", e)
+            pass
+
+    def _save(self):
+        try:
+            path = self._path
+            if not path.parent.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("w", encoding="utf-8") as f:
+                f.write(self.model_dump_json(indent=None, ensure_ascii=False))
+        except Exception:
+            pass
+
+    def __setattr__(self, key, value):
+        print(f"SettingsManager: setting {key} to {value}")
+        res = super().__setattr__(key, value)
+        if key in self.__annotations__:
+            key_class = self.__annotations__.get(key, None)
+            if key_class and issubclass(key_class, StrEnum):
+                value = key_class(value)
+            res = super().__setattr__(key, value)
+            # only save if this is a explicitly defined attribute
+            self._save()
+        return res
+
 
 # optional font loader (pyglet) — used to register local ttf/ttc files so Tk can use their family names
 try:
@@ -38,7 +98,12 @@ class CJKApp:
         self.root.iconbitmap("appicon.ico")
 
         # Application state variables
-        self.language_var = StringVar(self.root, value=DisplayLanguage.EN)
+        self.settings_mgr = SettingsManager.load()
+        self.language_var = StringVar(self.root, value=self.settings_mgr.language)
+        self.theme_var = StringVar(self.root, value=self.settings_mgr.theme)
+        self.copy_on_click_var = StringVar(
+            self.root, value=self.settings_mgr.copy_type_on_click.value
+        )
 
         # fonts (defaults; may be changed by register_fonts_for_language)
         self.title_font = ("Segoe UI", 12, "bold underline")
@@ -132,6 +197,47 @@ class CJKApp:
             self.title_font = ("Segoe UI", 12, "bold underline")
             self.text_font = ("Segoe UI", 12)
             self.text_sum_font = ("Segoe UI", 12, "bold")
+
+    # settings load/save and theming are provided by SettingsManager
+    def _apply_theme(self, theme: str | ColourTheme | None = None):
+        if theme is None:
+            theme = self.theme_var.get()
+        if theme == ColourTheme.DARK:
+            bg = "#1e1e1e"
+            fg = "#e6e6e6"
+            widget_bg = "#2b2b2b"
+        else:
+            bg = "#ffffff"
+            fg = "#000000"
+            widget_bg = "#f0f0f0"
+
+        try:
+            self.root.configure(bg=bg)
+        except Exception:
+            pass
+
+        def _apply(w):
+            try:
+                cls = w.winfo_class()
+                if cls in ("Frame", "Label", "Button", "Canvas", "Scrollbar"):
+                    try:
+                        w.configure(bg=widget_bg)
+                    except Exception:
+                        pass
+                if cls in ("Label", "Button"):
+                    try:
+                        w.configure(fg=fg)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            for c in w.winfo_children():
+                _apply(c)
+
+        try:
+            _apply(self.root)
+        except Exception:
+            pass
 
     def build_ui(self):
         """Create UI in `container` according to language `lang`."""
@@ -257,6 +363,10 @@ class CJKApp:
                 font=u_font,
             ).grid(column=unicode_col + 2, row=u_row, sticky=W)
 
+        # bind shortcuts
+        self.root.bind_all("<Control-o>", lambda e: self.open_file(None))
+        self.root.bind_all("<Control-s>", lambda e: self.save_csv())
+
         # apply persisted counts
         self._update_font_info_display()
         self._reset_counts()
@@ -269,12 +379,43 @@ class CJKApp:
             except Exception:
                 pass
 
+        # finally, apply theme to new widgets
+        self._apply_theme(self.settings_mgr.theme)
+
     def rebuild_ui(self):
         for w in self.frame.winfo_children():
             w.destroy()
 
         self._register_ui_fonts_by_language()
         self.build_ui()
+
+    def _on_theme_change(self):
+        # theme_var is a StringVar bound to menu; delegate to SettingsManager
+        t = self.theme_var.get()
+        try:
+            self.settings_mgr.theme = t
+            self._apply_theme(t)
+        except Exception:
+            pass
+
+    def _on_language_change(self, lang):
+        """Persist language selection and rebuild UI."""
+        try:
+            # lang may be DisplayLanguage enum; store its value
+            self.settings_mgr.language = DisplayLanguage(lang)
+            self.language_var.set(lang)
+            # update fonts/layout and rebuild
+            self.rebuild_ui()
+        except Exception:
+            pass
+
+    def _on_copy_on_click_change(self):
+        """Persist copy on click selection."""
+        try:
+            cotc = self.copy_on_click_var.get()
+            self.settings_mgr.copy_type_on_click = CopyTypeOnClick(cotc)
+        except Exception:
+            pass
 
     def _build_menubar(self):
         top_menu_bar = Menu(self.root)
@@ -294,17 +435,52 @@ class CJKApp:
 
         top_menu_bar.add_cascade(label=self._("File"), menu=file_menu)
 
+        # Settings menu
+        settings_menu = Menu(top_menu_bar, tearoff=0)
+        top_menu_bar.add_cascade(label=self._("Settings"), menu=settings_menu)
+
+        # Settings menu (theme)
+        theme_sub = Menu(settings_menu, tearoff=0)
+        theme_sub.add_radiobutton(
+            label=self._("Light"),
+            variable=self.theme_var,
+            value=ColourTheme.LIGHT,
+            command=self._on_theme_change,
+        )
+        theme_sub.add_radiobutton(
+            label=self._("Dark"),
+            variable=self.theme_var,
+            value=ColourTheme.DARK,
+            command=self._on_theme_change,
+        )
+        settings_menu.add_cascade(label=self._("Theme"), menu=theme_sub)
+
         # UI localisation menu
-        language_menu = Menu(top_menu_bar, tearoff=0)
-        # add radiobuttons bound to the instance StringVar
+        language_sub = Menu(settings_menu, tearoff=0)
         for lang in global_var.DisplayLanguage:
-            language_menu.add_radiobutton(
+            language_sub.add_radiobutton(
                 label=lang.display_name(),
                 variable=self.language_var,
                 value=lang.value,
-                command=self.rebuild_ui,
+                command=lambda l=lang: self._on_language_change(l),
             )
-        top_menu_bar.add_cascade(label=self._("Language"), menu=language_menu)
+        settings_menu.add_cascade(label=self._("Language"), menu=language_sub)
+
+        # copy on click menu
+        copy_type_sub = Menu(settings_menu, tearoff=0)
+        copy_type_sub.add_radiobutton(
+            label=self._("Missing Characters"),
+            variable=self.copy_on_click_var,
+            value=CopyTypeOnClick.MISSING_CHARACTERS,
+            command=self._on_copy_on_click_change,
+        )
+        copy_type_sub.add_radiobutton(
+            label=self._("Characters in Font"),
+            variable=self.copy_on_click_var,
+            value=CopyTypeOnClick.CHARACTERS_IN_FONT,
+            command=self._on_copy_on_click_change,
+        )
+        settings_menu.add_cascade(label=self._("Copy on Click"), menu=copy_type_sub)
 
     def _update_font_info_display(self):
         """Update font info display labels."""
@@ -392,24 +568,46 @@ class CJKApp:
         # write_html.write(filename.name, cjk_char_count, unicode_char_count)
 
     def save_csv(self):
-        import write_csv
-
-        if self.font_name.get() == self._("no_file_selected"):
+        if self.last_font is None or self.font_name.get() == self._("no_file_selected"):
             messagebox.showwarning(
                 title=self._("no_file_selected"),
                 message=self._("no_file_selected_message"),
             )
             return
 
-        save_csv_path = Path(
-            fd.asksaveasfilename(
-                title=self._("Save Report"),
-                defaultextension=".csv",
-                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        save_file_path = fd.asksaveasfilename(
+            title=self._("Save Report"),
+            defaultextension=".csv",
+            initialfile=self.last_font.font_path.stem + ".csv",
+            filetypes=[
+                ("CSV file", "*.csv"),
+                ("HTML file", "*.html"),
+                ("All files", "*.*"),
+            ],
+        )
+        if not save_file_path:
+            return
+
+        write_module = None
+        # convert to resolved Path
+        save_file_path = Path(save_file_path).resolve()
+        if save_file_path.suffix.lower() == ".html":
+            import write_html
+
+            write_module = write_html.write
+        elif save_file_path.suffix.lower() == ".csv":
+            import write_csv
+
+            write_module = write_csv.write
+        else:
+            messagebox.showwarning(
+                title=self._("invalid_file_extension"),
+                message=self._("invalid_file_extension_message"),
             )
-        ).resolve()
-        write_csv.write(
-            save_csv_path,
+            return
+
+        write_module(
+            save_file_path,
             self.last_font.cjk_char_count,
             self.last_font.unicode_char_count,
             self.language_var.get(),
@@ -417,7 +615,7 @@ class CJKApp:
 
         messagebox.showinfo(
             title=self._("report_saved"),
-            message=self._("report_saved_message").format(save_csv_path),
+            message=self._("report_saved_message").format(save_file_path),
         )
 
     def run(self):

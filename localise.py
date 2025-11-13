@@ -43,6 +43,8 @@ LABELS = {
         "not_a_valid_font_file_message": "This is not a valid font file.",
         "report_saved": "Report saved",
         "report_saved_message": "Report successfully saved to: {}",
+        "invalid_file_extension": "Invalid file extension",
+        "invalid_file_extension_message": "The selected save file extension is unsupported.",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "All suppported font format",
             "*.ttf *.otf *.woff *.woff2": "Single font file format",
@@ -79,6 +81,8 @@ LABELS = {
         "not_a_valid_font_file_message": "这不是有效的字体文件。",
         "report_saved": "报告已保存",
         "report_saved_message": "报告已成功保存至：{}",
+        "invalid_file_extension": "无效的文件扩展名",
+        "invalid_file_extension_message": "不支持所选保存文件的扩展名。",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "所有支援的字体格式",
             "*.ttf *.otf *.woff *.woff2": "单独字体文件",
@@ -134,6 +138,8 @@ LABELS = {
         "not_a_valid_font_file_message": "這不是有效的字型檔。",
         "report_saved": "報告已保存",
         "report_saved_message": "報告已成功保存至：{}",
+        "invalid_file_extension": "無效的文檔擴展名",
+        "invalid_file_extension_message": "不支援所選保存文檔的擴展名。",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "所有支援的字型格式",
             "*.ttf *.otf *.woff *.woff2": "單獨字型檔",
