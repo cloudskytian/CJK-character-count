@@ -14,30 +14,28 @@ from FontInfoCollector import FontInfoCollector
 
 # optional font loader (pyglet) — used to register local ttf/ttc files so Tk can use their family names
 try:
-    import pyglet
     from pyglet.font import add_file as _pyglet_add_file
 
-    # use legacy naming to avoid issues with certain font names
-    pyglet.options["dw_legacy_naming"] = True
-
-    try:
-        tc_font_files = [
-            global_var.main_directory / "GenYoGothicTW-R.ttf",
-            global_var.main_directory / "cjk-char-bold.ttf",
-        ]
-        for p in tc_font_files:
-            if p.exists():
-                _pyglet_add_file(str(p))
-    except Exception as e:
-        print(e)
+    tc_font_files = [
+        global_var.main_directory / "GenYoGothicTW-R.ttf",
+        global_var.main_directory / "cjk-char-header.ttf",
+    ]
+    for p in tc_font_files:
+        if p.exists():
+            _pyglet_add_file(str(p))
 except Exception:
     pass
 
 
 class CJKApp:
-    def __init__(self, root, args):
-        self.root = root
-        self.args = args
+    def __init__(self, args):
+        self.root = Tk()
+        # starting window size
+        self.root.geometry("1600x800")
+        # minimum window size
+        self.root.minsize(600, 600)
+        # set up icon
+        self.root.iconbitmap("appicon.ico")
 
         # Application state variables
         self.language_var = StringVar(self.root, value=DisplayLanguage.EN)
@@ -113,7 +111,7 @@ class CJKApp:
         ):
             try:
                 self.open_file(args.filename)
-                if self.args.report:
+                if args.report:
                     self.save_csv()
             except Exception:
                 pass
@@ -123,9 +121,9 @@ class CJKApp:
         # keep instance attributes in sync
         lang = self.language_var.get()
         if lang == DisplayLanguage.ZHT:
-            self.title_font = ("cjk-char-bold", 14, "underline")
+            self.title_font = ("cjk-char-header", 14, "underline")
             self.text_font = ("GenYoGothic TW R", 13)
-            self.text_sum_font = ("cjk-char-bold", 13)
+            self.text_sum_font = ("cjk-char-header", 13)
         elif lang == DisplayLanguage.ZHS:
             self.title_font = ("Microsoft YaHei UI", 14, "bold underline")
             self.text_font = ("Microsoft YaHei UI", 13)
@@ -449,6 +447,5 @@ args = parser.parse_args()
 
 
 if __name__ == "__main__":
-    root = Tk()
-    app = CJKApp(root, args)
+    app = CJKApp(args)
     app.run()
