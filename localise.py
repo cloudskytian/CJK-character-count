@@ -45,6 +45,9 @@ LABELS = {
         "report_saved_message": "Report successfully saved to: {}",
         "invalid_file_extension": "Invalid file extension",
         "invalid_file_extension_message": "The selected save file extension is unsupported.",
+        "copied_to_clipboard": "Copied to clipboard",
+        "copied_to_clipboard_message_missing": "Copied {count} missing characters to clipboard.",
+        "copied_to_clipboard_message_overlap": "Copied {count} overlapping characters to clipboard.",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "All suppported font format",
             "*.ttf *.otf *.woff *.woff2": "Single font file format",
@@ -83,6 +86,9 @@ LABELS = {
         "report_saved_message": "报告已成功保存至：{}",
         "invalid_file_extension": "无效的文件扩展名",
         "invalid_file_extension_message": "不支持所选保存文件的扩展名。",
+        "copied_to_clipboard": "复制到剪贴板",
+        "copied_to_clipboard_message_missing": "已复制 {count} 个缺失字符到剪贴板。",
+        "copied_to_clipboard_message_overlap": "已复制 {count} 个存在字符到剪贴板。",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "所有支援的字体格式",
             "*.ttf *.otf *.woff *.woff2": "单独字体文件",
@@ -140,6 +146,9 @@ LABELS = {
         "report_saved_message": "報告已成功保存至：{}",
         "invalid_file_extension": "無效的文檔擴展名",
         "invalid_file_extension_message": "不支援所選保存文檔的擴展名。",
+        "copied_to_clipboard": "複製到剪貼板",
+        "copied_to_clipboard_message_missing": "已複製 {count} 个缺失字符到剪貼板。",
+        "copied_to_clipboard_message_overlap": "已複製 {count} 个存在字符到剪貼板。",
         "filetypes": {
             "*.ttf *.otf *.woff *.woff2 *.otc *.ttc": "所有支援的字型格式",
             "*.ttf *.otf *.woff *.woff2": "單獨字型檔",

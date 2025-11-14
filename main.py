@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from enum import StrEnum
 from pydantic import BaseModel
+import pyperclip
 
 import global_var
 from global_var import DisplayLanguage
@@ -321,7 +322,7 @@ class CJKApp:
                 table_count_label.grid(column=1, row=row_cursor, sticky=E)
                 table_count_label.bind(
                     "<Button-1>",
-                    lambda e, lbl=table_count_label: print(e, lbl.cget("text")),
+                    lambda e, enc_key=enc_key: self.copy_charset_diff_to_clipboard(enc_key),
                 )
                 Label(
                     container,
@@ -618,11 +619,38 @@ class CJKApp:
             message=self._("report_saved_message").format(save_file_path),
         )
 
+    def copy_charset_diff_to_clipboard(self, encoding_id: str):
+        # validate
+        if self.last_font is None:
+            return
+        table = global_var.DisplayCJKTablesList.get_all_tables().get(encoding_id, None)
+        if not table:
+            return
+
+        # get diff
+        copying_style = ""
+        result_set = set()
+        if self.settings_mgr.copy_type_on_click == CopyTypeOnClick.MISSING_CHARACTERS:
+            # copy missing characters
+            result_set = table.get_diff(self.last_font.char_list)
+            copying_style = "missing"
+        else:
+            # copy characters in font and encoding
+            result_set = table.get_overlap(self.last_font.char_list)
+            copying_style = "overlap"
+        pyperclip.copy("".join(sorted(result_set)))
+
+        # popup message
+        
+        messagebox.showinfo(
+            title=self._("copied_to_clipboard"),
+            message=self._("copied_to_clipboard_message_" + copying_style).format(
+                count=len(result_set),
+            ),
+        )
+
     def run(self):
         self.root.mainloop()
-
-    def copy_text_to_clipboard(self, text: str):
-        pass
 
     def _(self, label_key):
         """Retrieve the localized label for the given label key based on current language."""
