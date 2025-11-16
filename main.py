@@ -15,6 +15,9 @@ from localise import get_localised_label
 from FontInfoCollector import FontInfoCollector
 
 
+__version__ = "0.50"
+
+
 class ColourTheme(StrEnum):
     LIGHT = "light"
     DARK = "dark"
@@ -47,7 +50,6 @@ class SettingsManager(BaseModel):
             from traceback import print_exc
 
             print_exc()
-            print("Error loading settings:", e)
             pass
 
     def _save(self):
@@ -61,7 +63,6 @@ class SettingsManager(BaseModel):
             pass
 
     def __setattr__(self, key, value):
-        print(f"SettingsManager: setting {key} to {value}")
         res = super().__setattr__(key, value)
         if key in self.__annotations__:
             key_class = self.__annotations__.get(key, None)
@@ -322,7 +323,9 @@ class CJKApp:
                 table_count_label.grid(column=1, row=row_cursor, sticky=E)
                 table_count_label.bind(
                     "<Button-1>",
-                    lambda e, enc_key=enc_key: self.copy_charset_diff_to_clipboard(enc_key),
+                    lambda e, enc_key=enc_key: self.copy_charset_diff_to_clipboard(
+                        enc_key
+                    ),
                 )
                 Label(
                     container,
@@ -335,9 +338,9 @@ class CJKApp:
 
         # Unicode section
         unicode_col = 4
-        Label(
-            container, text=self._("section_titles")["uni"], font=self.title_font
-        ).grid(column=unicode_col, row=2, sticky=W, padx=5)
+        Label(container, text=self._("section_titles.uni"), font=self.title_font).grid(
+            column=unicode_col, row=2, sticky=W, padx=5
+        )
         for i, (uni_block_id, uni_block) in enumerate(
             global_var.DisplayUnicodeBlocksList.get_ordered_blocks().items()
         ):
@@ -419,42 +422,42 @@ class CJKApp:
             pass
 
     def _build_menubar(self):
+        # root menu bar
         top_menu_bar = Menu(self.root)
         self.root.config(menu=None)
         self.root.config(menu=top_menu_bar)
 
         # File menu
         file_menu = Menu(top_menu_bar, tearoff=0)
+        top_menu_bar.add_cascade(label=self._("menu.file"), menu=file_menu)
         file_menu.add_command(
-            label=self._("Open"),
+            label=self._("menu.open"),
             command=lambda: self.open_file(),
         )
         file_menu.add_command(
-            label=self._("Save Report"),
+            label=self._("menu.save"),
             command=lambda: self.save_csv(),
         )
 
-        top_menu_bar.add_cascade(label=self._("File"), menu=file_menu)
-
         # Settings menu
         settings_menu = Menu(top_menu_bar, tearoff=0)
-        top_menu_bar.add_cascade(label=self._("Settings"), menu=settings_menu)
+        top_menu_bar.add_cascade(label=self._("menu.settings"), menu=settings_menu)
 
         # Settings menu (theme)
         theme_sub = Menu(settings_menu, tearoff=0)
         theme_sub.add_radiobutton(
-            label=self._("Light"),
+            label=self._("menu.light"),
             variable=self.theme_var,
             value=ColourTheme.LIGHT,
             command=self._on_theme_change,
         )
         theme_sub.add_radiobutton(
-            label=self._("Dark"),
+            label=self._("menu.dark"),
             variable=self.theme_var,
             value=ColourTheme.DARK,
             command=self._on_theme_change,
         )
-        settings_menu.add_cascade(label=self._("Theme"), menu=theme_sub)
+        settings_menu.add_cascade(label=self._("menu.theme"), menu=theme_sub)
 
         # UI localisation menu
         language_sub = Menu(settings_menu, tearoff=0)
@@ -465,23 +468,36 @@ class CJKApp:
                 value=lang.value,
                 command=lambda l=lang: self._on_language_change(l),
             )
-        settings_menu.add_cascade(label=self._("Language"), menu=language_sub)
+        settings_menu.add_cascade(label=self._("menu.language"), menu=language_sub)
 
         # copy on click menu
         copy_type_sub = Menu(settings_menu, tearoff=0)
         copy_type_sub.add_radiobutton(
-            label=self._("Missing Characters"),
+            label=self._("menu.Missing Characters"),
             variable=self.copy_on_click_var,
             value=CopyTypeOnClick.MISSING_CHARACTERS,
             command=self._on_copy_on_click_change,
         )
         copy_type_sub.add_radiobutton(
-            label=self._("Characters in Font"),
+            label=self._("menu.Characters in Font"),
             variable=self.copy_on_click_var,
             value=CopyTypeOnClick.CHARACTERS_IN_FONT,
             command=self._on_copy_on_click_change,
         )
-        settings_menu.add_cascade(label=self._("Copy on Click"), menu=copy_type_sub)
+        settings_menu.add_cascade(
+            label=self._("menu.Copy on Click"), menu=copy_type_sub
+        )
+
+        # File menu
+        about_menu = Menu(top_menu_bar, tearoff=0)
+        top_menu_bar.add_cascade(label=self._("menu.about"), menu=about_menu)
+        about_menu.add_command(
+            label=self._("menu.about"),
+            command=lambda: messagebox.showinfo(
+                title=self._("menu.about") + " " + self._("CJK Character Count"),
+                message=f"{self._('CJK Character Count')}\n{self._('menu.version')} {__version__}",
+            ),
+        )
 
     def _update_font_info_display(self):
         """Update font info display labels."""
@@ -641,7 +657,6 @@ class CJKApp:
         pyperclip.copy("".join(sorted(result_set)))
 
         # popup message
-        
         messagebox.showinfo(
             title=self._("copied_to_clipboard"),
             message=self._("copied_to_clipboard_message_" + copying_style).format(

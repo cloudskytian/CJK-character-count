@@ -26,8 +26,21 @@ LABELS = {
     DisplayLanguage.EN: {
         "CJK Character Count": "CJK Character Count",
         "Open": "Open",
-        "Save Report": "Save Report",
-        "text_report": "Text report",
+        "menu": {
+            "file": "File",
+            "open": "Open (Ctrl+O)",
+            "save": "Save Report (Ctrl+S)",
+            "settings": "Settings",
+            "language": "Language",
+            "theme": "Theme",
+            "light": "Light",
+            "dark": "Dark",
+            "Missing Characters": "Missing Characters",
+            "Characters in Font": "Characters in Font",
+            "Copy on Click": "Copy on Click",
+            "about": "About",
+            "version": "Version",
+        },
         "section_titles": {
             "jian": "Chinese (Simp) Encodings",
             "jianfan": "Chinese (Simp/Trad) Encodings",
@@ -57,8 +70,6 @@ LABELS = {
             "*.otc *.ttc": "OpenType collection font",
             "*.*": "All files",
         },
-        "File": "File",
-        "Language": "Language",
         "OpenType collection selection": "OpenType Collection Selection",
         "Pick font for counting:": "Pick font for counting:",
         "OK": "OK",
@@ -67,8 +78,21 @@ LABELS = {
     DisplayLanguage.ZHS: {
         "CJK Character Count": "字体计数软件",
         "Open": "打开",
-        "Save Report": "保存报告",
-        "text_report": "文本报告",
+        "menu": {
+            "file": "文件",
+            "open": "打开 (Ctrl+O)",
+            "save": "保存报告 (Ctrl+S)",
+            "settings": "设置",
+            "language": "语言",
+            "theme": "主题",
+            "light": "明亮",
+            "dark": "黑暗",
+            "Missing Characters": "缺失字符",
+            "Characters in Font": "存在字符",
+            "Copy on Click": "点击复制",
+            "about": "关于",
+            "version": "版本",
+        },
         "section_titles": {
             "jian": "简体中文编码",
             "jianfan": "简体/繁体中文编码",
@@ -98,8 +122,6 @@ LABELS = {
             "*.otc *.ttc": "OpenType 合集字型",
             "*.*": "所有文件",
         },
-        "File": "文件",
-        "Language": "语言",
         "OpenType collection selection": "OpenType合集字体选择",
         "Pick font for counting:": "选择计数的字体：",
         "OK": "确定",
@@ -127,8 +149,21 @@ LABELS = {
     DisplayLanguage.ZHT: {
         "CJK Character Count": "字型計數軟體",
         "Open": "打開",
-        "Save Report": "保存報告",
-        "text_report": "文本報告",
+        "menu": {
+            "file": "文檔",
+            "open": "打開 (Ctrl+O)",
+            "save": "保存報告 (Ctrl+S)",
+            "settings": "設置",
+            "language": "語言",
+            "theme": "主題",
+            "light": "明亮",
+            "dark": "黑暗",
+            "Missing Characters": "缺失字符",
+            "Characters in Font": "存在字符",
+            "Copy on Click": "點擊複製",
+            "about": "關於",
+            "version": "版本",
+        },
         "section_titles": {
             "jian": "簡體中文編碼",
             "jianfan": "簡體/正體（繁體）中文編碼",
@@ -158,8 +193,6 @@ LABELS = {
             "*.otc *.ttc": "OpenType 合集字型",
             "*.*": "所有文檔",
         },
-        "File": "文檔",
-        "Language": "語言",
         "OpenType collection selection": "OpenType合集字型選擇",
         "Pick font for counting:": "選擇計數的字型：",
         "OK": "確定",
@@ -187,9 +220,25 @@ LABELS = {
 }
 
 
+def get_by_dotted_key(data: dict, dotted_key: str, default=None):
+    keys = dotted_key.split(".")
+    current = data
+    for i, key in enumerate(keys):
+        if i == len(keys) - 1:
+            if not isinstance(current, dict):
+                return default
+            if key not in current:
+                return default
+            return current[key]
+        elif key not in current or not isinstance(current[key], dict):
+            return default
+        current = current[key]
+
+
 def get_localised_label(lang_code: DisplayLanguage, label_key: str):
     """Retrieve the localized label for the given language code and label key."""
-    result = LABELS.get(lang_code, LABELS[DisplayLanguage.EN]).get(label_key, label_key)
+    language_records = LABELS.get(lang_code, LABELS[DisplayLanguage.EN])
+    result = get_by_dotted_key(language_records, label_key, default=label_key)
     if isinstance(result, dict):
         return result.copy()
     if result is None:
