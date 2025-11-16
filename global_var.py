@@ -243,6 +243,7 @@ class DisplayCJKTablesList:
             "hkscs",
             "suppchara",
             "gb12345",
+            "gujiyinshua"
         ],
     }
 
