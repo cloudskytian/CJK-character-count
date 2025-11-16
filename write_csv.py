@@ -1,122 +1,113 @@
-import global_var
-import csv
-from pathlib import Path
+from global_var import (
+    DisplayCJKTablesList,
+    CJKGroup,
+    CJKTable,
+    DisplayLanguage,
+    DisplayUnicodeBlocksList,
+)
 from localise import get_localised_label
 
+import csv
+from pathlib import Path
 
-def write(output_fullpath: Path, cjk_char_count, unicode_char_count, lang):
-    # language localization
-    if lang == "zhs":  # simplified chinese
-        cjk_jian_namelist = global_var.cjk_jian_list_zhs
-        cjk_jian_fan_namelist = global_var.cjk_jian_fan_list_zhs
-        cjk_fan_namelist = global_var.cjk_fan_list_zhs
-        unicode_namelist = global_var.unicode_list_zhs
-        csv_title = "#名称,计数,总数"
-    elif lang == "zht":  # traditional chinese
-        cjk_jian_namelist = global_var.cjk_jian_list_zht
-        cjk_jian_fan_namelist = global_var.cjk_jian_fan_list_zht
-        cjk_fan_namelist = global_var.cjk_fan_list_zht
-        unicode_namelist = global_var.unicode_list_zht
-        csv_title = "#名稱,計數,總數"
-    else:
-        cjk_jian_namelist = global_var.cjk_jian_list_en
-        cjk_jian_fan_namelist = global_var.cjk_jian_fan_list_en
-        cjk_fan_namelist = global_var.cjk_fan_list_en
-        unicode_namelist = global_var.unicode_list
-        csv_title = "#name,count,full_size"
+
+def write(
+    output_fullpath: Path, cjk_char_count, unicode_char_count, lang: DisplayLanguage
+):
 
     output_file = output_fullpath.open("w", encoding="utf-8", newline="")
     # newline="" lets csv module control newlines
     output_writer = csv.DictWriter(
-        output_file, ("name", "count", "full_size"), quoting=csv.QUOTE_NONNUMERIC
+        output_file, ("name", "count", "full_size"), quotechar="'",
     )
 
-    # start writing
-    if lang == "zht":
-        write_list(
-            output_file,
-            output_writer,
-            get_localised_label(lang, "section_titles")["fan"],
-            csv_title,
-            cjk_fan_namelist,
-            cjk_char_count,
-            global_var.cjk_count,
-        )
-    else:
-        write_list(
-            output_file,
-            output_writer,
-            get_localised_label(lang, "section_titles")["jian"],
-            csv_title,
-            cjk_jian_namelist,
-            cjk_char_count,
-            global_var.cjk_count,
-        )
+    cjk_output_order = [CJKGroup.FAN, CJKGroup.JIANFAN, CJKGroup.JIAN]
+    if lang == DisplayLanguage.ZHS:
+        cjk_output_order = [CJKGroup.JIAN, CJKGroup.JIANFAN, CJKGroup.FAN]
 
-    output_file.write("===\n\n")
+    for table_group in cjk_output_order:
+        write_table(
+            output_writer,
+            lang,
+            get_localised_label(lang, "section_titles")[table_group],
+            DisplayCJKTablesList.get_ordered_tables_in_group(table_group),
+            cjk_char_count,
+        )
+        output_file.write("\n")
 
-    write_list(
-        output_file,
+    output_file.write("\n")
+
+    write_block(
         output_writer,
-        get_localised_label(lang, "section_titles")["jianfan"],
-        csv_title,
-        cjk_jian_fan_namelist,
-        cjk_char_count,
-        global_var.cjk_count,
-    )
-
-    output_file.write("===\n\n")
-
-    if lang == "zht":
-        write_list(
-            output_file,
-            output_writer,
-            get_localised_label(lang, "section_titles")["jian"],
-            csv_title,
-            cjk_jian_namelist,
-            cjk_char_count,
-            global_var.cjk_count,
-        )
-    else:
-        write_list(
-            output_file,
-            output_writer,
-            get_localised_label(lang, "section_titles")["fan"],
-            csv_title,
-            cjk_fan_namelist,
-            cjk_char_count,
-            global_var.cjk_count,
-        )
-
-    output_file.write("===\n\n")
-
-    write_list(
-        output_file,
-        output_writer,
-        get_localised_label(lang, "section_titles")["uni"],
-        csv_title,
-        unicode_namelist,
+        lang,
         unicode_char_count,
-        global_var.unicode_count,
     )
 
-    output_file.write("===")
+    output_file.write("\n")
 
     output_file.close()
 
 
-def write_list(
-    output_file, output_writer, title, csv_title, name_list, count_arr, total_arr
+def write_table(
+    output_writer: csv.DictWriter,
+    lang: DisplayLanguage,
+    title: str,
+    name_list: dict[str, CJKTable],
+    count_arr: dict[str, int],
 ):
-    output_file.write(f"=== %s ===\n" % (title))
+    output_writer.writerow({"name": "===", "count": title, "full_size": "==="})
+
+    # language localization header
+    if lang == DisplayLanguage.ZHS:
+        csv_header = {"name": "#名称", "count": "计数", "full_size": "总数"}
+    elif lang == DisplayLanguage.ZHT:
+        csv_header = {"name": "#名稱", "count": "計數", "full_size": "總數"}
+    else:
+        csv_header = {"name": "#name", "count": "count", "full_size": "full_size"}
+    output_writer.writerow(csv_header)
+
+    # contents
     write_dict = []
-    for varname, fullname in name_list.items():
+    for varname, table in name_list.items():
         write_dict.append(
             {
-                "name": fullname,
+                "name": '"' + table.localised_name(lang) + '"',
                 "count": count_arr[varname],
-                "full_size": total_arr[varname],
+                "full_size": table.count,
             }
         )
-    output_file.write(csv_title + "\n")
+    output_writer.writerows(write_dict)
+
+
+def write_block(
+    output_writer: csv.DictWriter,
+    lang: DisplayLanguage,
+    count_arr: dict[str, int],
+):
+    output_writer.writerow(
+        {
+            "name": "===",
+            "count": get_localised_label(lang, "section_titles.uni"),
+            "full_size": "===",
+        }
+    )
+
+    # language localization header
+    if lang == DisplayLanguage.ZHS:
+        csv_header = {"name": "#名称", "count": "计数", "full_size": "总数"}
+    elif lang == DisplayLanguage.ZHT:
+        csv_header = {"name": "#名稱", "count": "計數", "full_size": "總數"}
+    else:
+        csv_header = {"name": "#name", "count": "count", "full_size": "full_size"}
+    output_writer.writerow(csv_header)
+
+    write_dict = []
+    for varname, block in DisplayUnicodeBlocksList.get_ordered_blocks().items():
+        write_dict.append(
+            {
+                "name": '"' + get_localised_label(lang, "unicode_blocks").get(block.name, block.name) + '"',
+                "count": count_arr[varname],
+                "full_size": len(block.assigned_ranges),
+            }
+        )
     output_writer.writerows(write_dict)

@@ -3,6 +3,7 @@ from global_var import (
     CJK_NON_COMPATIBILITY_IDEOGRAPHS,
     CJK_ZERO_BLOCK,
     DisplayUnicodeBlocksList,
+    CJKGroup,
 )
 from unicode_blocks.blocks import (
     KANGXI_RADICALS,
@@ -42,9 +43,9 @@ LABELS = {
             "version": "Version",
         },
         "section_titles": {
-            "jian": "Chinese (Simp) Encodings",
-            "jianfan": "Chinese (Simp/Trad) Encodings",
-            "fan": "Chinese (Trad) Encodings",
+            CJKGroup.JIAN: "Chinese (Simp) Encodings",
+            CJKGroup.JIANFAN: "Chinese (Simp/Trad) Encodings",
+            CJKGroup.FAN: "Chinese (Trad) Encodings",
             "uni": "Unicode Blocks",
         },
         "Font: ": "Font: ",
@@ -94,9 +95,9 @@ LABELS = {
             "version": "版本",
         },
         "section_titles": {
-            "jian": "简体中文编码",
-            "jianfan": "简体/繁体中文编码",
-            "fan": "繁体中文编码",
+            CJKGroup.JIAN: "简体中文编码",
+            CJKGroup.JIANFAN: "简体/繁体中文编码",
+            CJKGroup.FAN: "繁体中文编码",
             "uni": "统一码区段",
         },
         "Font: ": "字体：",
@@ -165,9 +166,9 @@ LABELS = {
             "version": "版本",
         },
         "section_titles": {
-            "jian": "簡體中文編碼",
-            "jianfan": "簡體/正體（繁體）中文編碼",
-            "fan": "正體（繁體）中文編碼",
+            CJKGroup.JIAN: "簡體中文編碼",
+            CJKGroup.JIANFAN: "簡體/正體（繁體）中文編碼",
+            CJKGroup.FAN: "正體（繁體）中文編碼",
             "uni": "統一碼區段",
         },
         "Font: ": "字型：",

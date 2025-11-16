@@ -1,14 +1,3 @@
-global cjk_list
-global unicode_list
-
-global cjk_jian_list
-global cjk_jian_fan_list
-global cjk_fan_list
-
-global cjk_count
-global unicode_count
-global unicode_block_range
-
 import sys
 from typing import Self
 from pathlib import Path
@@ -285,7 +274,7 @@ class DisplayCJKTablesList:
 class DisplayUnicodeBlocksList:
     block_list: dict[str, CJKTable] = {
         "ZERO": CJK_ZERO_BLOCK,
-        "compat-ideo": CJK_NON_COMPATIBILITY_IDEOGRAPHS,
+        "__NON_COMPATIBILITY_(UNIFIED)_IDEOGRAPHS": CJK_NON_COMPATIBILITY_IDEOGRAPHS,
     }
 
     predefined_order = [
